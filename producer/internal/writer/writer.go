@@ -16,15 +16,17 @@ type Config struct {
 	Topic  string
 }
 
-type MessageWriter interface {
-	Write(ctx context.Context, events []model.LogEvent) error
+type kafkaWriter interface {
+	WriteMessages(ctx context.Context, msgs ...kafka.Message) error
 	Close() error
 }
 
-var _ MessageWriter = (*Writer)(nil)
-
 type Writer struct {
-	kw *kafka.Writer
+	kw kafkaWriter
+}
+
+func NewKafkaWriter(kw kafkaWriter) *Writer {
+	return &Writer{kw: kw}
 }
 
 func NewWriter(cfg Config) *Writer {

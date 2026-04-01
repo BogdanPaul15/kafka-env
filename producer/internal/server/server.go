@@ -1,13 +1,13 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
 	"producer/internal/model"
-	"producer/internal/writer"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -16,13 +16,18 @@ type Config struct {
 	HTTPPort int
 }
 
+type MessageWriter interface {
+	Write(ctx context.Context, events []model.LogEvent) error
+	Close() error
+}
+
 type Server struct {
-	writer writer.MessageWriter
+	writer MessageWriter
 	mux    *http.ServeMux
 	addr   string
 }
 
-func NewServer(writer *writer.Writer, cfg Config) *Server {
+func NewServer(writer MessageWriter, cfg Config) *Server {
 	s := &Server{
 		writer: writer,
 		mux:    http.NewServeMux(),
