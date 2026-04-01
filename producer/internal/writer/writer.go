@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"producer/internal/metrics"
 	"producer/internal/model"
 
 	kafka "github.com/segmentio/kafka-go"
@@ -55,9 +56,16 @@ func (w *Writer) Write(ctx context.Context, events []model.LogEvent) error {
 		}
 	}
 
-	if err := w.kw.WriteMessages(ctx, msgs...); err != nil {
+	start := time.Now()
+	err := w.kw.WriteMessages(ctx, msgs...)
+	metrics.KafkaWriteDuration.Observe(time.Since(start).Seconds())
+
+	if err != nil {
+		metrics.KafkaWriteErrors.Inc()
 		return fmt.Errorf("failed to write messages: %w", err)
 	}
+
+	metrics.KafkaMessagesWritten.Add(float64(len(msgs)))
 	return nil
 }
 

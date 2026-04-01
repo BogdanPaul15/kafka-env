@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 
+	"producer/internal/metrics"
 	"producer/internal/model"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -43,13 +44,33 @@ func (s *Server) Run() error {
 }
 
 func (s *Server) registerRoutes() {
-	s.mux.HandleFunc("/ingest", s.handleIngest)
+	s.mux.Handle("/ingest", s.track("/ingests", http.HandlerFunc(s.handleIngest)))
 	s.mux.HandleFunc("/healthz", s.handleHealth)
 	s.mux.Handle("/metrics", promhttp.Handler())
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *statusRecorder) WriteHeader(code int) {
+	r.status = code
+	r.ResponseWriter.WriteHeader(code)
+}
+
+func (s *Server) track(route string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		recorder := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(recorder, r)
+
+		status := fmt.Sprintf("%d", recorder.status)
+		metrics.HTTPRequestsTotal.WithLabelValues(route, status).Inc()
+	})
 }
 
 func (s *Server) handleIngest(w http.ResponseWriter, r *http.Request) {
