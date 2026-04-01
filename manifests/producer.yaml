@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-producer
+  namespace: kafka
+  labels:
+    app: kafka-producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-producer
+  template:
+    metadata:
+      labels:
+        app: kafka-producer
+    spec:
+      containers:
+        - name: kafka-producer
+          image: bogdanpaul15/kafka-producer:latest
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 250m
+              memory: 500Mi
+            limits:
+              cpu: 250m
+              memory: 500Mi
+          ports:
+            - containerPort: 8080
+          env:
+            - name: KAFKA_BROKER
+              value: "my-cluster-kafka-bootstrap.kafka.svc:9092"
+            - name: KAFKA_TOPIC
+              value: "my-topic"
+            - name: HTTP_PORT
+              value: "8080"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-producer
+  namespace: kafka
+  labels:
+    app: kafka-producer
+spec:
+  type: ClusterIP
+  selector:
+    app: kafka-producer
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
