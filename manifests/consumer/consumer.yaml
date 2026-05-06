@@ -1,24 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kafka-producer
+  name: kafka-consumer
   namespace: kafka
   labels:
-    app: kafka-producer
+    app: kafka-consumer
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: kafka-producer
+      app: kafka-consumer
   template:
     metadata:
       labels:
-        app: kafka-producer
+        app: kafka-consumer
     spec:
       containers:
-        - name: kafka-producer
-          image: bogdanpaul15/kafka-producer:latest
-          imagePullPolicy: Always
+        - name: kafka-consumer
+          image: bogdanpaul15/kafka-consumer:latest
+          imagePullPolicy: IfNotPresent
           resources:
             requests:
               cpu: 250m
@@ -33,27 +33,24 @@ spec:
               value: "my-cluster-kafka-bootstrap.kafka.svc:9092"
             - name: KAFKA_TOPIC
               value: "my-topic"
-            - name: HTTP_PORT
-              value: "8080"
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: 8080
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            failureThreshold: 3
+            - name: KAFKA_GROUP_ID
+              value: "my-consumer-group"
+            - name: OPENSEARCH_ADDRESSES
+              value: "opensearch.kafka.svc:9200"
+            - name: CONSUMER_BATCH_SIZE
+              value: "500"
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: kafka-producer
+  name: kafka-consumer
   namespace: kafka
   labels:
-    app: kafka-producer
+    app: kafka-consumer
 spec:
   type: ClusterIP
   selector:
-    app: kafka-producer
+    app: kafka-consumer
   ports:
     - protocol: TCP
       port: 8080
