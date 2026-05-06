@@ -87,6 +87,11 @@ func (s *Server) handleIngest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(events) == 0 {
+		http.Error(w, "Empty request body.", http.StatusBadRequest)
+		return
+	}
+
 	if err := s.writer.Write(r.Context(), events); err != nil {
 		errMsg := fmt.Errorf("failed to process events: %w", err)
 		log.Println(errMsg)
