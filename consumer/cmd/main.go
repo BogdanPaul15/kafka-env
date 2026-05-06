@@ -20,13 +20,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create opensearch client: %v", err)
 	}
-	reader := reader.NewReader(cfg.Kafka)
 
+	reader := reader.NewReader(cfg.Kafka)
 	consumer := consumer.NewConsumer(reader, store)
+	defer consumer.Close()
 
 	if err := consumer.Run(context.Background()); err != nil {
 		log.Fatalf("consumer error: %v", err)
 	}
-
-	consumer.Close()
 }
